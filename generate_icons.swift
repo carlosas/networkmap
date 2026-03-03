@@ -20,17 +20,24 @@ func render(image: NSImage, size: Int, menubar: Bool) -> Data? {
         for y in 0..<size {
             guard let color = rep.colorAt(x: x, y: y) else { continue }
             
-            // For a black-on-white SVG, the grayscale intensity represents the "background"
-            // We convert white (1.0) to alpha=0.0 (transparent) and black (0.0) to alpha=1.0 (opaque)
+            // For the menu bar template, macOS uses the alpha channel to draw the shape.
+            // The SVG's foreground lines/shapes are white (1.0), and the background is black (0.0).
+            // We want the foreground to be opaque (alpha 1.0) and background to be clear (alpha 0.0).
             let whiteLevel = (color.redComponent + color.greenComponent + color.blueComponent) / 3.0
-            let newAlpha = 1.0 - whiteLevel
+            let newAlpha = whiteLevel
             
-            if newAlpha < 0.01 {
-                rep.setColor(NSColor.clear, atX: x, y: y)
+            if !menubar {
+                // If it's the AppIcon (not menubar), we just make near-black background transparent
+                if whiteLevel < 0.05 {
+                    rep.setColor(NSColor.clear, atX: x, y: y)
+                }
             } else {
-                // Set all drawn pixels to black with their properly extracted alpha
-                // This makes them perfectly anti-aliased templates for the Menu Bar
-                rep.setColor(NSColor(white: 0.0, alpha: newAlpha), atX: x, y: y)
+                // For Menu Bar, we convert all pixels to pitch black and apply the new opacity mask
+                if newAlpha < 0.01 {
+                    rep.setColor(NSColor.clear, atX: x, y: y)
+                } else {
+                    rep.setColor(NSColor(white: 0.0, alpha: newAlpha), atX: x, y: y)
+                }
             }
         }
     }
