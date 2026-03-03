@@ -2,28 +2,37 @@ import AppKit
 import Foundation
 
 func render(image: NSImage, size: Int, menubar: Bool) -> Data? {
-    let targetSize = NSSize(width: size, height: size)
-    let newImage = NSImage(size: targetSize)
-    
-    newImage.lockFocus()
+    // Use NSBitmapImageRep directly to guarantee exact pixel dimensions
+    // (NSImage lockFocus creates 2x bitmaps on Retina displays)
+    guard let rep = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: size,
+        pixelsHigh: size,
+        bitsPerSample: 8,
+        samplesPerPixel: 4,
+        hasAlpha: true,
+        isPlanar: false,
+        colorSpaceName: .deviceRGB,
+        bytesPerRow: 0,
+        bitsPerPixel: 0
+    ) else { return nil }
+
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
     NSGraphicsContext.current?.imageInterpolation = .high
-    image.draw(in: NSRect(origin: .zero, size: targetSize),
+    image.draw(in: NSRect(x: 0, y: 0, width: size, height: size),
                from: NSRect(origin: .zero, size: image.size),
                operation: .copy,
                fraction: 1.0)
-    newImage.unlockFocus()
-    
-    guard let tiffData = newImage.tiffRepresentation,
-          let rep = NSBitmapImageRep(data: tiffData) else { return nil }
-    
-    if menubar {
-        for x in 0..<size {
-            for y in 0..<size {
-                guard let color = rep.colorAt(x: x, y: y) else { continue }
+    NSGraphicsContext.restoreGraphicsState()
 
-                // For the menu bar template, macOS uses the alpha channel to draw the shape.
-                // The SVG's foreground shape is black (dark) and interior details are white (light).
-                // Dark pixels (the icon silhouette) should be opaque; light pixels should be clear.
+    if menubar {
+        // For menu bar template images, macOS uses the alpha channel to draw the shape.
+        // The SVG's icon silhouette is black (dark) and interior details are white (light).
+        // Dark pixels should be opaque; light pixels should be clear.
+        for x in 0..<rep.pixelsWide {
+            for y in 0..<rep.pixelsHigh {
+                guard let color = rep.colorAt(x: x, y: y) else { continue }
                 let originalAlpha = color.alphaComponent
                 let whiteLevel = (color.redComponent + color.greenComponent + color.blueComponent) / 3.0
                 let newAlpha = originalAlpha * (1.0 - whiteLevel)
