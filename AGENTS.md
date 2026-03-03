@@ -25,10 +25,7 @@ The project uses GitHub Actions (`.github/workflows/release.yml`) to handle auto
 1. Triggered on pushes to tags starting with `v*` (e.g., `v1.0.0`).
 2. Builds the app using `build.sh` and ad-hoc signs it (`codesign -s - -f --deep`).
 3. Packages the `.app` into a zip file.
-4. Uses [Sparkle](https://sparkle-project.org/) to generate an `appcast.xml` incorporating the file's signature, pushing it to the `gh-pages` branch.
-5. Publishes the zip as a GitHub Release artifact.
-
-**Note:** The GitHub Actions workflow requires a `SPARKLE_PRIVATE_KEY` secret configured in the repository to sign the Sparkle appcast updates.
+4. Publishes the zip as a GitHub Release artifact.
 
 There are no tests.
 
