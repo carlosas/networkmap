@@ -14,10 +14,22 @@ struct NetworkMapApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var networkManager = NetworkManager()
     private let updaterController: SPUStandardUpdaterController
+    private let menuBarIcon: NSImage
     
     init() {
         // Initialize Sparkle Updater
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+        
+        // Load custom menu bar icon from bundle resources
+        if let resourceURL = Bundle.module.url(forResource: "MenuBarIcon", withExtension: "png", subdirectory: "Resources"),
+           let image = NSImage(contentsOf: resourceURL) {
+            image.isTemplate = true
+            image.size = NSSize(width: 18, height: 18)
+            menuBarIcon = image
+        } else {
+            // Fallback to SF Symbol if resource not found
+            menuBarIcon = NSImage(systemSymbolName: "network", accessibilityDescription: "NetworkMap")!
+        }
     }
     
     var body: some Scene {
@@ -52,10 +64,7 @@ struct NetworkMapApp: App {
             .padding()
             .frame(width: 200)
         } label: {
-            HStack {
-                Image(systemName: "network")
-                Text(networkManager.currentIP)
-            }
+            Image(nsImage: menuBarIcon)
         }
         .menuBarExtraStyle(.window)
     }

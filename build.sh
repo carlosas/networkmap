@@ -22,6 +22,13 @@ mkdir -p "$RESOURCES_DIR"
 # 3. Copy the binary
 cp "$EXECUTABLE_PATH" "$MACOS_DIR/$APP_NAME"
 
+# 3b. Copy the app icon
+if [ -f "Sources/NetworkMap/Resources/AppIcon.icns" ]; then
+    cp "Sources/NetworkMap/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+else
+    echo "Warning: AppIcon.icns not found in Sources/NetworkMap/Resources/"
+fi
+
 # 4. Create Info.plist (Inject Sparkle keys)
 SPARKLE_PUBLIC_KEY="b/Hy6Z4l3zhbflqPidmweOacYNYrDsSvK+jfcBuPSo8="
 SU_FEED_URL="https://carlosas.github.io/networkmap/appcast.xml"
@@ -43,6 +50,8 @@ cat > "$CONTENTS_DIR/Info.plist" <<EOF
     <string>$VERSION</string>
     <key>CFBundleVersion</key>
     <string>$VERSION</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>LSUIElement</key>
     <string>1</string>
     <key>NSPrincipalClass</key>

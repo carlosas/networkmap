@@ -18,7 +18,10 @@ let package = Package(
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle")
             ],
-            path: "Sources/NetworkMap"
+            path: "Sources/NetworkMap",
+            resources: [
+                .copy("Resources")
+            ]
         ),
     ]
 )
