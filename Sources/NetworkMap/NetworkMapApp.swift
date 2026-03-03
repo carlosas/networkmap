@@ -40,30 +40,31 @@ struct NetworkMapApp: App {
                 Text(networkManager.currentIP)
                     .font(.system(.body, design: .monospaced))
                     .bold()
-                
-                Divider()
-                
-                Button("Refresh") {
-                    Task {
-                        await networkManager.fetchPublicIP()
-                    }
-                }
-                .keyboardShortcut("R")
-                
-                Button("Check for Updates...") {
-                    updaterController.checkForUpdates(nil)
-                }
-                
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
-                }
-                .keyboardShortcut("Q")
             }
             .padding()
             .frame(width: 200)
+            
+            Divider()
+            
+            Button("Refresh") {
+                Task {
+                    await networkManager.fetchPublicIP()
+                }
+            }
+            .keyboardShortcut("R")
+            
+            Button("Check for Updates...") {
+                updaterController.checkForUpdates(nil)
+            }
+            
+            Divider()
+            
+            Button("Quit") {
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("Q")
         } label: {
             Image(nsImage: menuBarIcon)
         }
-        .menuBarExtraStyle(.window)
     }
 }
