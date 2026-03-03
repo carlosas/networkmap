@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -12,6 +13,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct NetworkMapApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var networkManager = NetworkManager()
+    private let updaterController: SPUStandardUpdaterController
+    
+    init() {
+        // Initialize Sparkle Updater
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    }
     
     var body: some Scene {
         MenuBarExtra {
@@ -32,6 +39,10 @@ struct NetworkMapApp: App {
                     }
                 }
                 .keyboardShortcut("R")
+                
+                Button("Check for Updates...") {
+                    updaterController.checkForUpdates(nil)
+                }
                 
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)

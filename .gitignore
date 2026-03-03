@@ -28,3 +28,8 @@ GEMINI.md
 *.xcworkspace
 *.xcodeproj
 .swiftpm/
+
+# Build Products & Releases
+NetworkMap.app/
+*.zip
+appcast.xml

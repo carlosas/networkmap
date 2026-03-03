@@ -22,7 +22,10 @@ mkdir -p "$RESOURCES_DIR"
 # 3. Copy the binary
 cp "$EXECUTABLE_PATH" "$MACOS_DIR/$APP_NAME"
 
-# 4. Create Info.plist
+# 4. Create Info.plist (Inject Sparkle keys)
+SPARKLE_PUBLIC_KEY="b/Hy6Z4l3zhbflqPidmweOacYNYrDsSvK+jfcBuPSo8="
+SU_FEED_URL="https://carlosas.github.io/networkmap/appcast.xml"
+
 cat > "$CONTENTS_DIR/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -37,13 +40,32 @@ cat > "$CONTENTS_DIR/Info.plist" <<EOF
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>\${VERSION:-1.0}</string>
+    <key>CFBundleVersion</key>
+    <string>\${VERSION:-1.0}</string>
     <key>LSUIElement</key>
     <string>1</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>SUFeedURL</key>
+    <string>$SU_FEED_URL</string>
+    <key>SUPublicEDKey</key>
+    <string>$SPARKLE_PUBLIC_KEY</string>
 </dict>
 </plist>
 EOF
+
+# 5. Embed Sparkle Framework
+FRAMEWORKS_DIR="$CONTENTS_DIR/Frameworks"
+mkdir -p "$FRAMEWORKS_DIR"
+
+if [ -d ".build/release/Sparkle.framework" ]; then
+    cp -R ".build/release/Sparkle.framework" "$FRAMEWORKS_DIR/"
+    # Change rpath so the app can find the framework
+    install_name_tool -add_rpath "@executable_path/../Frameworks" "$MACOS_DIR/$APP_NAME"
+else
+    echo "Warning: Sparkle.framework not found in .build/release/"
+fi
+
 
 echo "Done! Run the app with: open $APP_BUNDLE"

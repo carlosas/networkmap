@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Setup Sparkle
+        run: |
+          curl -L -o Sparkle.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz
+          mkdir -p bin/Sparkle
+          tar -xf Sparkle.tar.xz -C bin/Sparkle
+          rm Sparkle.tar.xz
+
+      - name: Build and Package
+        # Run the build script
+        run: |
+          # Copy the downloaded Sparkle framework to the build directory so build.sh can embed it
+          mkdir -p .build/release
+          cp -R bin/Sparkle/Sparkle.framework .build/release/
+
+          # Use the git tag as the version for Info.plist
+          export VERSION=${GITHUB_REF_NAME#v}
+          ./build.sh
+
+          # Ad-hoc sign the app deeply so embedded frameworks are also signed
+          codesign -s - -f --deep NetworkMap.app
+
+      - name: Create Archive
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          zip -ry "NetworkMap-${VERSION}.zip" NetworkMap.app
+
+      - name: Generate Sparkle Appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          # Fetch the existing appcast from gh-pages if it exists, otherwise start fresh
+          git fetch origin gh-pages || true
+          git show origin/gh-pages:appcast.xml > appcast.xml || echo '<?xml version="1.0" encoding="utf-8"?><rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><title>NetworkMap</title></channel></rss>' > appcast.xml
+
+          # Generate the signature and new appcast item
+          # Note: We use the embedded sparkle command line tools
+          bin/Sparkle/bin/generate_appcast \
+            --ed-key-file <(echo "$SPARKLE_PRIVATE_KEY") \
+            --download-url-prefix "https://github.com/carlosas/networkmap/releases/download/${GITHUB_REF_NAME}/" \
+            .
+
+      - name: Upload Release Archive
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "NetworkMap-*.zip"
+          generate_release_notes: true
+
+      - name: Publish Appcast to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan gh-pages || git checkout gh-pages
+          git reset
+          git add appcast.xml
+          git commit -m "Update appcast for ${GITHUB_REF_NAME}"
+          git push -u origin gh-pages --force
