@@ -16,23 +16,18 @@ func render(image: NSImage, size: Int, menubar: Bool) -> Data? {
     guard let tiffData = newImage.tiffRepresentation,
           let rep = NSBitmapImageRep(data: tiffData) else { return nil }
     
-    for x in 0..<size {
-        for y in 0..<size {
-            guard let color = rep.colorAt(x: x, y: y) else { continue }
-            
-            // For the menu bar template, macOS uses the alpha channel to draw the shape.
-            // The SVG's foreground lines/shapes are white (1.0), and the background is black (0.0).
-            // We want the foreground to be opaque (alpha 1.0) and background to be clear (alpha 0.0).
-            let whiteLevel = (color.redComponent + color.greenComponent + color.blueComponent) / 3.0
-            let newAlpha = whiteLevel
-            
-            if !menubar {
-                // If it's the AppIcon (not menubar), we just make near-black background transparent
-                if whiteLevel < 0.05 {
-                    rep.setColor(NSColor.clear, atX: x, y: y)
-                }
-            } else {
-                // For Menu Bar, we convert all pixels to pitch black and apply the new opacity mask
+    if menubar {
+        for x in 0..<size {
+            for y in 0..<size {
+                guard let color = rep.colorAt(x: x, y: y) else { continue }
+
+                // For the menu bar template, macOS uses the alpha channel to draw the shape.
+                // The SVG's foreground shape is black (dark) and interior details are white (light).
+                // Dark pixels (the icon silhouette) should be opaque; light pixels should be clear.
+                let originalAlpha = color.alphaComponent
+                let whiteLevel = (color.redComponent + color.greenComponent + color.blueComponent) / 3.0
+                let newAlpha = originalAlpha * (1.0 - whiteLevel)
+
                 if newAlpha < 0.01 {
                     rep.setColor(NSColor.clear, atX: x, y: y)
                 } else {
