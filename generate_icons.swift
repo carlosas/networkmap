@@ -2,40 +2,35 @@ import AppKit
 import Foundation
 
 func render(image: NSImage, size: Int, menubar: Bool) -> Data? {
-    guard let rep = NSBitmapImageRep(
-        bitmapDataPlanes: nil,
-        pixelsWide: size,
-        pixelsHigh: size,
-        bitsPerSample: 8,
-        samplesPerPixel: 4,
-        hasAlpha: true,
-        isPlanar: false,
-        colorSpaceName: .deviceRGB,
-        bytesPerRow: 0,
-        bitsPerPixel: 0
-    ) else { return nil }
+    let targetSize = NSSize(width: size, height: size)
+    let newImage = NSImage(size: targetSize)
     
-    NSGraphicsContext.saveGraphicsState()
-    guard let context = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
-    NSGraphicsContext.current = context
-    context.imageInterpolation = .high
-    image.draw(in: NSRect(x: 0, y: 0, width: size, height: size),
-               from: NSRect(x: 0, y: 0, width: image.size.width, height: image.size.height),
+    newImage.lockFocus()
+    NSGraphicsContext.current?.imageInterpolation = .high
+    image.draw(in: NSRect(origin: .zero, size: targetSize),
+               from: NSRect(origin: .zero, size: image.size),
                operation: .copy,
                fraction: 1.0)
-    NSGraphicsContext.restoreGraphicsState()
+    newImage.unlockFocus()
+    
+    guard let tiffData = newImage.tiffRepresentation,
+          let rep = NSBitmapImageRep(data: tiffData) else { return nil }
     
     for x in 0..<size {
         for y in 0..<size {
             guard let color = rep.colorAt(x: x, y: y) else { continue }
             
-            // Remove near-white background (RGB > 0.95 / 242)
-            if color.redComponent > 0.95 && color.greenComponent > 0.95 && color.blueComponent > 0.95 {
+            // For a black-on-white SVG, the grayscale intensity represents the "background"
+            // We convert white (1.0) to alpha=0.0 (transparent) and black (0.0) to alpha=1.0 (opaque)
+            let whiteLevel = (color.redComponent + color.greenComponent + color.blueComponent) / 3.0
+            let newAlpha = 1.0 - whiteLevel
+            
+            if newAlpha < 0.01 {
                 rep.setColor(NSColor.clear, atX: x, y: y)
-            } else if menubar {
-                // If it's for the menu bar, we make everything non-white black, preserving the alpha.
-                // This creates a perfect template image for macOS to recolor dynamically.
-                rep.setColor(NSColor(white: 0.0, alpha: color.alphaComponent), atX: x, y: y)
+            } else {
+                // Set all drawn pixels to black with their properly extracted alpha
+                // This makes them perfectly anti-aliased templates for the Menu Bar
+                rep.setColor(NSColor(white: 0.0, alpha: newAlpha), atX: x, y: y)
             }
         }
     }
@@ -84,11 +79,14 @@ task.waitUntilExit()
 try? FileManager.default.removeItem(at: iconsetDir)
 
 // 2. Generate Menu Bar Icons
+let resourcesDir = URL(fileURLWithPath: "Sources/NetworkMap/Resources")
+try? FileManager.default.createDirectory(at: resourcesDir, withIntermediateDirectories: true)
+
 if let menuData16 = render(image: image, size: 16, menubar: true) {
-    try? menuData16.write(to: URL(fileURLWithPath: "Sources/NetworkMap/Resources/MenuBarIcon.png"))
+    try? menuData16.write(to: resourcesDir.appendingPathComponent("MenuBarIcon.png"))
 }
 if let menuData32 = render(image: image, size: 32, menubar: true) {
-    try? menuData32.write(to: URL(fileURLWithPath: "Sources/NetworkMap/Resources/MenuBarIcon@2x.png"))
+    try? menuData32.write(to: resourcesDir.appendingPathComponent("MenuBarIcon@2x.png"))
 }
 
 print("Successfully generated and optimized icons from \(svgPath)")
