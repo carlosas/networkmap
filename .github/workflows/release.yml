@@ -56,6 +56,56 @@ jobs:
           files: "NetworkMap-*.dmg"
           generate_release_notes: true
 
+      - name: Generate Sparkle appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          DMG_FILE="NetworkMap-${VERSION}.dmg"
+          DMG_SIZE=$(stat -f%z "$DMG_FILE")
+          DMG_URL="https://github.com/carlosas/networkmap/releases/download/v${VERSION}/${DMG_FILE}"
+          PUB_DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
+
+          ENCLOSURE_ATTRS="length=\"${DMG_SIZE}\""
+          if [ -n "$SPARKLE_PRIVATE_KEY" ]; then
+            KEYFILE=$(mktemp)
+            echo "$SPARKLE_PRIVATE_KEY" > "$KEYFILE"
+            SIGN_OUTPUT=$(bin/Sparkle/bin/sign_update "$DMG_FILE" -f "$KEYFILE")
+            rm -f "$KEYFILE"
+            ENCLOSURE_ATTRS="$SIGN_OUTPUT"
+          else
+            echo "::warning::SPARKLE_PRIVATE_KEY not set. Appcast generated without EdDSA signature."
+          fi
+
+          mkdir -p _site
+          cat > _site/appcast.xml <<APPCAST
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+            <channel>
+              <title>NetworkMap</title>
+              <item>
+                <title>Version ${VERSION}</title>
+                <pubDate>${PUB_DATE}</pubDate>
+                <sparkle:version>${VERSION}</sparkle:version>
+                <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+                <enclosure url="${DMG_URL}"
+                           ${ENCLOSURE_ATTRS}
+                           type="application/octet-stream" />
+              </item>
+            </channel>
+          </rss>
+          APPCAST
+
+      - name: Deploy appcast to GitHub Pages
+        run: |
+          cd _site
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml
+          git commit -m "Update appcast for v${VERSION}"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
+
       - name: Update Homebrew cask
         env:
           TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
