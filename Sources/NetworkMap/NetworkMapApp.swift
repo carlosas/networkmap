@@ -2,6 +2,40 @@ import SwiftUI
 import AppKit
 import Sparkle
 
+struct MenuItemButton: View {
+    let title: String
+    let shortcut: String?
+    let action: () -> Void
+    @State private var isHovered = false
+
+    init(_ title: String, shortcut: String? = nil, action: @escaping () -> Void) {
+        self.title = title
+        self.shortcut = shortcut
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                Spacer()
+                if let shortcut {
+                    Text(shortcut)
+                        .foregroundColor(isHovered ? .white : .secondary)
+                }
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity)
+            .background(isHovered ? Color.accentColor : Color.clear)
+            .foregroundColor(isHovered ? .white : .primary)
+            .cornerRadius(4)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // This ensures the app doesn't show in the Dock
@@ -46,25 +80,24 @@ struct NetworkMapApp: App {
             
             Divider()
             
-            Button("Refresh") {
+            MenuItemButton("Refresh", shortcut: "⌘R") {
                 Task {
                     await networkManager.fetchPublicIP()
                 }
             }
-            .keyboardShortcut("R")
             
-            Button("Check for Updates...") {
+            MenuItemButton("Check for Updates...") {
                 updaterController.checkForUpdates(nil)
             }
             
             Divider()
             
-            Button("Quit") {
+            MenuItemButton("Quit", shortcut: "⌘Q") {
                 NSApplication.shared.terminate(nil)
             }
-            .keyboardShortcut("Q")
         } label: {
             Image(nsImage: menuBarIcon)
         }
+        .menuBarExtraStyle(.window)
     }
 }
