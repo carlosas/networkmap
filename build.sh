@@ -4,6 +4,12 @@ set -e
 APP_NAME="NetworkMap"
 BUNDLE_ID="com.carlosas.networkmap"
 EXECUTABLE_PATH=".build/release/$APP_NAME"
+
+# BUILD_NUMBER must be a numeric integer for Sparkle version comparison
+# In CI it's set via GITHUB_ENV; locally default to git commit count or 1
+if [ -z "$BUILD_NUMBER" ]; then
+    BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || echo "1")
+fi
 APP_BUNDLE="$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
@@ -49,7 +55,7 @@ cat > "$CONTENTS_DIR/Info.plist" <<EOF
     <key>CFBundleShortVersionString</key>
     <string>$VERSION</string>
     <key>CFBundleVersion</key>
-    <string>$VERSION</string>
+    <string>$BUILD_NUMBER</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSUIElement</key>

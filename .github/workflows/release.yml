@@ -25,8 +25,10 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Derive version from tag
-        run: echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
+      - name: Derive version and build number from tag
+        run: |
+          echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
 
       - name: Setup Sparkle
         run: |
@@ -85,7 +87,7 @@ jobs:
               <item>
                 <title>Version ${VERSION}</title>
                 <pubDate>${PUB_DATE}</pubDate>
-                <sparkle:version>${VERSION}</sparkle:version>
+                <sparkle:version>${BUILD_NUMBER}</sparkle:version>
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                 <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
                 <enclosure url="${DMG_URL}"
