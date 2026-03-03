@@ -15,23 +15,25 @@ struct MenuItemButton: View {
     }
 
     var body: some View {
-        Button(action: action) {
-            HStack {
-                Text(title)
-                Spacer()
-                if let shortcut {
-                    Text(shortcut)
-                        .foregroundColor(isHovered ? .white : .secondary)
-                }
+        HStack {
+            Text(title)
+            Spacer()
+            if let shortcut {
+                Text(shortcut)
+                    .font(.body)
+                    .foregroundColor(isHovered ? .white : .secondary)
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
-            .frame(maxWidth: .infinity)
-            .background(isHovered ? Color.accentColor : Color.clear)
-            .foregroundColor(isHovered ? .white : .primary)
-            .cornerRadius(4)
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isHovered ? Color.accentColor : Color.clear)
+        )
+        .foregroundColor(isHovered ? .white : .primary)
+        .contentShape(Rectangle())
+        .onTapGesture { action() }
         .onHover { isHovered = $0 }
     }
 }
@@ -66,38 +68,52 @@ struct NetworkMapApp: App {
     
     var body: some Scene {
         MenuBarExtra {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Your Public IP Address")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Text(networkManager.currentIP)
-                    .font(.system(.body, design: .monospaced))
-                    .bold()
-            }
-            .padding()
-            .frame(width: 200)
-            
-            Divider()
-            
-            MenuItemButton("Refresh", shortcut: "⌘R") {
-                Task {
-                    await networkManager.fetchPublicIP()
+            VStack(alignment: .leading, spacing: 0) {
+                // --- Information area (unchanged) ---
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Your Public IP Address")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Text(networkManager.currentIP)
+                        .font(.system(.body, design: .monospaced))
+                        .bold()
                 }
+                .padding()
+                
+                Divider()
+                    .padding(.vertical, 4)
+                
+                // --- Menu items ---
+                VStack(alignment: .leading, spacing: 2) {
+                    MenuItemButton("Refresh", shortcut: "⌘R") {
+                        Task {
+                            await networkManager.fetchPublicIP()
+                        }
+                    }
+                    
+                    MenuItemButton("Check for Updates...") {
+                        updaterController.checkForUpdates(nil)
+                    }
+                }
+                .padding(.horizontal, 6)
+                
+                Divider()
+                    .padding(.vertical, 4)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    MenuItemButton("Quit", shortcut: "⌘Q") {
+                        NSApplication.shared.terminate(nil)
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 4)
             }
-            
-            MenuItemButton("Check for Updates...") {
-                updaterController.checkForUpdates(nil)
-            }
-            
-            Divider()
-            
-            MenuItemButton("Quit", shortcut: "⌘Q") {
-                NSApplication.shared.terminate(nil)
-            }
+            .frame(width: 220)
         } label: {
             Image(nsImage: menuBarIcon)
         }
         .menuBarExtraStyle(.window)
     }
 }
+
