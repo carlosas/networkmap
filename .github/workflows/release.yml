@@ -146,7 +146,7 @@ jobs:
           # Remove leading whitespace from heredoc
           sed -i '' 's/^          //' networkmap.rb
 
-          git clone "https://x-access-token:${TAP_TOKEN}@github.com/carlosas/homebrew-networkmap.git" tap
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/carlosas/homebrew-tap.git" tap
           mkdir -p tap/Casks
           cp networkmap.rb tap/Casks/networkmap.rb
           cd tap

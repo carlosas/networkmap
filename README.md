@@ -35,7 +35,7 @@
 The fastest and easiest way to install and keep NetworkMap updated.
 
 ```bash
-brew install carlosas/networkmap/networkmap
+brew install carlosas/tap/networkmap
 ```
 
 ### Manual Installation

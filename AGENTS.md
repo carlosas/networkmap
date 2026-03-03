@@ -26,7 +26,7 @@ The project uses GitHub Actions (`.github/workflows/release.yml`) to handle auto
 2. Builds the app using `build.sh` and ad-hoc signs it (`codesign -s - -f --deep`).
 3. Packages the `.app` into a DMG via `create-dmg.sh`.
 4. Publishes the DMG as a GitHub Release artifact.
-5. If the `TAP_GITHUB_TOKEN` secret is set, auto-updates the Homebrew cask in `carlosas/homebrew-networkmap`.
+5. If the `TAP_GITHUB_TOKEN` secret is set, auto-updates the Homebrew cask in `carlosas/homebrew-tap`.
 
 There are no tests.
 
