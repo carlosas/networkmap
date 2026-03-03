@@ -21,7 +21,30 @@ CONTENTS_DIR="$APP_BUNDLE/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
-# 1. Build the executable
+# 1a. Build nmap from source (cached)
+NMAP_VERSION="7.95"
+NMAP_BUILD_DIR=".build/nmap-build"
+NMAP_BINARY=".build/nmap-build/nmap-${NMAP_VERSION}/nmap"
+
+if [ ! -f "$NMAP_BINARY" ]; then
+    echo "Building nmap ${NMAP_VERSION} from source..."
+    mkdir -p "$NMAP_BUILD_DIR"
+    if [ ! -d "$NMAP_BUILD_DIR/nmap-${NMAP_VERSION}" ]; then
+        curl -fL -o "$NMAP_BUILD_DIR/nmap.tar.bz2" "https://nmap.org/dist/nmap-${NMAP_VERSION}.tar.bz2"
+        tar -xjf "$NMAP_BUILD_DIR/nmap.tar.bz2" -C "$NMAP_BUILD_DIR"
+        rm "$NMAP_BUILD_DIR/nmap.tar.bz2"
+    fi
+    pushd "$NMAP_BUILD_DIR/nmap-${NMAP_VERSION}" > /dev/null
+    # Fix autotools timestamp issues from tarball extraction
+    find . -name '*.m4' -o -name 'configure' -o -name 'Makefile.in' -o -name 'config.h.in' | xargs touch
+    ./configure --without-openssl --without-nping --without-zenmap --without-ncat --without-ndiff --without-nmap-update
+    make -j$(sysctl -n hw.ncpu)
+    popd > /dev/null
+else
+    echo "Using cached nmap binary."
+fi
+
+# 1b. Build the executable
 echo "Building $APP_NAME..."
 swift build -c release
 
@@ -46,6 +69,23 @@ if [ -f "Sources/NetworkMap/Resources/MenuBarIcon.png" ]; then
     cp Sources/NetworkMap/Resources/MenuBarIcon*.png "$RESOURCES_DIR/"
 else
     echo "Warning: MenuBarIcon.png not found in Sources/NetworkMap/Resources/"
+fi
+
+# 3d. Copy bundled nmap binary and data files
+if [ -f "$NMAP_BINARY" ]; then
+    NMAP_SRC_DIR="$NMAP_BUILD_DIR/nmap-${NMAP_VERSION}"
+    NMAP_DEST_DIR="$RESOURCES_DIR/nmap"
+    mkdir -p "$NMAP_DEST_DIR"
+    cp "$NMAP_BINARY" "$NMAP_DEST_DIR/nmap"
+    chmod +x "$NMAP_DEST_DIR/nmap"
+    # Copy essential data files for MAC vendor lookup and service resolution
+    for f in nmap-mac-prefixes nmap-services nmap-protocols nmap-payloads; do
+        if [ -f "$NMAP_SRC_DIR/$f" ]; then
+            cp "$NMAP_SRC_DIR/$f" "$NMAP_DEST_DIR/"
+        fi
+    done
+else
+    echo "Warning: nmap binary not found at $NMAP_BINARY"
 fi
 
 # 4. Create Info.plist (Inject Sparkle keys)

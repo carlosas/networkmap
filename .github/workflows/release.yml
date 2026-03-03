@@ -47,6 +47,12 @@ jobs:
             echo "No icon.svg found, skipping icon generation."
           fi
 
+      - name: Cache nmap build
+        uses: actions/cache@v4
+        with:
+          path: .build/nmap-build
+          key: nmap-7.95-${{ runner.arch }}
+
       - name: Build and Package
         run: |
           mkdir -p .build/release
