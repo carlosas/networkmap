@@ -9,9 +9,18 @@ A clean and modern macOS menu bar app that displays your public IP address in re
 
 ## How to Install
 
+### Homebrew (recommended)
+
+```bash
+brew install carlosas/networkmap/networkmap
+```
+
+### Manual
+
 1. Download the latest `NetworkMap-X.Y.Z.dmg` from the [Releases](https://github.com/carlosas/networkmap/releases) page.
 2. Open the DMG and drag **NetworkMap** to the **Applications** folder.
-3. On first launch, right-click the app and choose **Open** (this is needed once because the app is not notarized by Apple).
+3. Open Terminal and run: `xattr -cr /Applications/NetworkMap.app` (needed because the app is not notarized by Apple).
+4. Launch the app from your Applications folder.
 
 ## Local Development
 

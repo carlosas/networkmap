@@ -55,3 +55,41 @@ jobs:
         with:
           files: "NetworkMap-*.dmg"
           generate_release_notes: true
+
+      - name: Update Homebrew cask
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        if: env.TAP_TOKEN != ''
+        run: |
+          SHA=$(shasum -a 256 "NetworkMap-${VERSION}.dmg" | awk '{print $1}')
+
+          cat > networkmap.rb <<CASK
+          cask "networkmap" do
+            version "${VERSION}"
+            sha256 "${SHA}"
+
+            url "https://github.com/carlosas/networkmap/releases/download/v#{version}/NetworkMap-#{version}.dmg"
+            name "NetworkMap"
+            desc "macOS menu bar app that displays network information in real-time"
+            homepage "https://github.com/carlosas/networkmap"
+
+            app "NetworkMap.app"
+
+            postflight do
+              system_command "/usr/bin/xattr",
+                             args: ["-cr", "#{appdir}/NetworkMap.app"]
+            end
+          end
+          CASK
+
+          # Remove leading whitespace from heredoc
+          sed -i '' 's/^          //' networkmap.rb
+
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/carlosas/homebrew-networkmap.git" tap
+          cp networkmap.rb tap/Casks/networkmap.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/networkmap.rb
+          git commit -m "Update NetworkMap to ${VERSION}"
+          git push

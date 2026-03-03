@@ -24,8 +24,9 @@ The project uses GitHub Actions (`.github/workflows/release.yml`) to handle auto
 
 1. Triggered on pushes to tags starting with `v*` (e.g., `v1.0.0`).
 2. Builds the app using `build.sh` and ad-hoc signs it (`codesign -s - -f --deep`).
-3. Packages the `.app` into a zip file.
-4. Publishes the zip as a GitHub Release artifact.
+3. Packages the `.app` into a DMG via `create-dmg.sh`.
+4. Publishes the DMG as a GitHub Release artifact.
+5. If the `TAP_GITHUB_TOKEN` secret is set, auto-updates the Homebrew cask in `carlosas/homebrew-networkmap`.
 
 There are no tests.
 
