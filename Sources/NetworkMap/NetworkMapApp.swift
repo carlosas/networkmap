@@ -42,6 +42,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // This ensures the app doesn't show in the Dock
         NSApp.setActivationPolicy(.accessory)
+        
+        // Explicitly load the app icon so Sparkle and other alerts display it correctly
+        if let appIcon = NSImage(named: "AppIcon") {
+            NSApp.applicationIconImage = appIcon
+        }
     }
 }
 
