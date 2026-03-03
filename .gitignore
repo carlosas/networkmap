@@ -1,8 +1,30 @@
+# System
 .DS_Store
-/.build
-/Packages
+.build/
+Packages/
 xcuserdata/
 DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+
+# AI assistants
+CLAUDE.md
+GEMINI.md
+.cursorrules
+.cursor/
+.github/copilot-instructions.md
+.aider*
+.codeium/
+.continue/
+.codex/
+.junie/
+.windsurfrules
+.windsurf/
+
+# IDEs
+.idea/
+.vscode/
+*.xcworkspace
+*.xcodeproj
+.swiftpm/
