@@ -37,6 +37,15 @@ jobs:
           tar -xf Sparkle.tar.xz -C bin/Sparkle
           rm Sparkle.tar.xz
 
+      - name: Generate Icons from SVG
+        run: |
+          if [ -f "icon.svg" ]; then
+            echo "Found icon.svg, generating app and menu bar icons..."
+            swift generate_icons.swift
+          else
+            echo "No icon.svg found, skipping icon generation."
+          fi
+
       - name: Build and Package
         run: |
           mkdir -p .build/release

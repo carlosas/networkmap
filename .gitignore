@@ -29,7 +29,10 @@ GEMINI.md
 *.xcodeproj
 .swiftpm/
 
-# Build Products & Releases
+# Builds & Releases
 NetworkMap.app/
 *.zip
 appcast.xml
+Sources/NetworkMap/Resources/AppIcon.icns
+Sources/NetworkMap/Resources/MenuBarIcon.png
+Sources/NetworkMap/Resources/MenuBarIcon@2x.png
