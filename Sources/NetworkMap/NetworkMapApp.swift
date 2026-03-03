@@ -57,7 +57,9 @@ struct NetworkMapApp: App {
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
         
         // Load custom menu bar icon from bundle resources
-        if let image = NSImage(named: "MenuBarIcon") {
+        if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            image.size = NSSize(width: 18, height: 18)
             image.isTemplate = true
             menuBarIcon = image
         } else {

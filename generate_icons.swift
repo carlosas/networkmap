@@ -27,21 +27,29 @@ func render(image: NSImage, size: Int, menubar: Bool) -> Data? {
     NSGraphicsContext.restoreGraphicsState()
 
     if menubar {
-        // For menu bar template images, macOS uses the alpha channel to draw the shape.
+        // For menu bar template images, macOS uses only the alpha channel to draw the shape.
         // The SVG's icon silhouette is black (dark) and interior details are white (light).
-        // Dark pixels should be opaque; light pixels should be clear.
-        for x in 0..<rep.pixelsWide {
-            for y in 0..<rep.pixelsHigh {
-                guard let color = rep.colorAt(x: x, y: y) else { continue }
-                let originalAlpha = color.alphaComponent
-                let whiteLevel = (color.redComponent + color.greenComponent + color.blueComponent) / 3.0
-                let newAlpha = originalAlpha * (1.0 - whiteLevel)
+        // Dark pixels → high alpha (visible); light pixels → low alpha (transparent).
+        // Use direct pixel buffer access to avoid colorAt/setColor color space conversion issues.
+        guard let data = rep.bitmapData else { return nil }
+        let bytesPerRow = rep.bytesPerRow
+        let spp = rep.samplesPerPixel
 
-                if newAlpha < 0.01 {
-                    rep.setColor(NSColor.clear, atX: x, y: y)
-                } else {
-                    rep.setColor(NSColor(white: 0.0, alpha: newAlpha), atX: x, y: y)
-                }
+        for y in 0..<rep.pixelsHigh {
+            for x in 0..<rep.pixelsWide {
+                let offset = y * bytesPerRow + x * spp
+                let r = CGFloat(data[offset])     / 255.0
+                let g = CGFloat(data[offset + 1]) / 255.0
+                let b = CGFloat(data[offset + 2]) / 255.0
+                let a = CGFloat(data[offset + 3]) / 255.0
+
+                let brightness = (r + g + b) / 3.0
+                let newAlpha = a * (1.0 - brightness)
+
+                data[offset]     = 0  // R → black
+                data[offset + 1] = 0  // G → black
+                data[offset + 2] = 0  // B → black
+                data[offset + 3] = UInt8(min(255, max(0, newAlpha * 255.0)))
             }
         }
     }
