@@ -5,6 +5,12 @@ APP_NAME="NetworkMap"
 BUNDLE_ID="com.carlosas.networkmap"
 EXECUTABLE_PATH=".build/release/$APP_NAME"
 
+# VERSION is the human-readable version string (e.g. "0.0.1-alpha15")
+# In CI it's set via GITHUB_ENV from the git tag; locally derive from latest tag
+if [ -z "$VERSION" ]; then
+    VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0-dev")
+fi
+
 # BUILD_NUMBER must be a numeric integer for Sparkle version comparison
 # In CI it's set via GITHUB_ENV; locally default to git commit count or 1
 if [ -z "$BUILD_NUMBER" ]; then

@@ -15,8 +15,6 @@ permissions:
 jobs:
   release:
     runs-on: macos-latest
-    env:
-      VERSION: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -27,7 +25,8 @@ jobs:
 
       - name: Derive version and build number from tag
         run: |
-          echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
+          RAW_TAG="${{ github.ref_name }}"
+          echo "VERSION=${RAW_TAG#v}" >> "$GITHUB_ENV"
           echo "BUILD_NUMBER=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
 
       - name: Setup Sparkle
