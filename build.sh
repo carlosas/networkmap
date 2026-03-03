@@ -35,6 +35,13 @@ else
     echo "Warning: AppIcon.icns not found in Sources/NetworkMap/Resources/"
 fi
 
+# 3c. Copy the menu bar icon resources
+if [ -f "Sources/NetworkMap/Resources/MenuBarIcon.png" ]; then
+    cp Sources/NetworkMap/Resources/MenuBarIcon*.png "$RESOURCES_DIR/"
+else
+    echo "Warning: MenuBarIcon.png not found in Sources/NetworkMap/Resources/"
+fi
+
 # 4. Create Info.plist (Inject Sparkle keys)
 SPARKLE_PUBLIC_KEY="b/Hy6Z4l3zhbflqPidmweOacYNYrDsSvK+jfcBuPSo8="
 SU_FEED_URL="https://carlosas.github.io/networkmap/appcast.xml"
