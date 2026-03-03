@@ -44,11 +44,14 @@ jobs:
 
           codesign -s - -f --deep NetworkMap.app
 
-      - name: Create Archive
-        run: zip -ry "NetworkMap-${VERSION}.zip" NetworkMap.app
+      - name: Remove quarantine attributes
+        run: xattr -cr NetworkMap.app
 
-      - name: Upload Release Archive
+      - name: Create DMG
+        run: ./create-dmg.sh
+
+      - name: Upload Release DMG
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
         with:
-          files: "NetworkMap-*.zip"
+          files: "NetworkMap-*.dmg"
           generate_release_notes: true

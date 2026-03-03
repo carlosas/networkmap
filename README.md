@@ -7,17 +7,11 @@ A clean and modern macOS menu bar app that displays your public IP address in re
 - **Real-time Monitoring:** Automatically refreshes your public IP when your network connection changes.
 - **Lightweight:** Runs as a background accessory app with no Dock icon.
 
-## How to Install (From Releases)
+## How to Install
 
-Because this app is not signed with an Apple Developer account, Gatekeeper might block it.
-
-1. Download the latest `NetworkMap-vX.Y.Z.zip` from the [Releases](https://github.com/carlosas/networkmap/releases) page.
-2. Unzip it and move `NetworkMap.app` to your `/Applications` folder.
-3. Open Terminal and run the following command to remove the quarantine attributes:
-   ```bash
-   xattr -cr /Applications/NetworkMap.app
-   ```
-4. Double-click the app in your Applications folder to run it.
+1. Download the latest `NetworkMap-X.Y.Z.dmg` from the [Releases](https://github.com/carlosas/networkmap/releases) page.
+2. Open the DMG and drag **NetworkMap** to the **Applications** folder.
+3. On first launch, right-click the app and choose **Open** (this is needed once because the app is not notarized by Apple).
 
 ## Local Development
 
