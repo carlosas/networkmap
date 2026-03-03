@@ -1,21 +1,29 @@
 import SwiftUI
 import AppKit
 import Sparkle
+import ServiceManagement
 
 struct MenuItemButton: View {
     let title: String
     let shortcut: String?
+    let isChecked: Bool?
     let action: () -> Void
     @State private var isHovered = false
 
-    init(_ title: String, shortcut: String? = nil, action: @escaping () -> Void) {
+    init(_ title: String, shortcut: String? = nil, isChecked: Bool? = nil, action: @escaping () -> Void) {
         self.title = title
         self.shortcut = shortcut
+        self.isChecked = isChecked
         self.action = action
     }
 
     var body: some View {
         HStack {
+            if let isChecked {
+                Image(systemName: isChecked ? "checkmark.square" : "square")
+                    .font(.system(size: 13, weight: .medium))
+                    .frame(width: 16)
+            }
             Text(title)
             Spacer()
             if let shortcut {
@@ -54,6 +62,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct NetworkMapApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var networkManager = NetworkManager()
+    @State private var launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
     private let updaterController: SPUStandardUpdaterController
     private let menuBarIcon: NSImage
     
@@ -108,7 +117,11 @@ struct NetworkMapApp: App {
                 Divider()
                     .padding(.vertical, 4)
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 0) {
+                    MenuItemButton("Start at Login", isChecked: launchAtLoginEnabled) {
+                        toggleLaunchAtLogin()
+                    }
+                    
                     MenuItemButton("Quit", shortcut: "⌘Q") {
                         NSApplication.shared.terminate(nil)
                     }
@@ -121,6 +134,19 @@ struct NetworkMapApp: App {
             Image(nsImage: menuBarIcon)
         }
         .menuBarExtraStyle(.window)
+    }
+    
+    private func toggleLaunchAtLogin() {
+        do {
+            if launchAtLoginEnabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+            launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
+        } catch {
+            print("Failed to update launch at login status: \(error)")
+        }
     }
 }
 
