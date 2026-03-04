@@ -5,14 +5,12 @@ import ServiceManagement
 
 struct MenuItemButton: View {
     let title: String
-    let shortcut: String?
     let isChecked: Bool?
     let action: () -> Void
     @State private var isHovered = false
 
-    init(_ title: String, shortcut: String? = nil, isChecked: Bool? = nil, action: @escaping () -> Void) {
+    init(_ title: String, isChecked: Bool? = nil, action: @escaping () -> Void) {
         self.title = title
-        self.shortcut = shortcut
         self.isChecked = isChecked
         self.action = action
     }
@@ -26,11 +24,6 @@ struct MenuItemButton: View {
             }
             Text(title)
             Spacer()
-            if let shortcut {
-                Text(shortcut)
-                    .font(.body)
-                    .foregroundColor(isHovered ? .white : .secondary)
-            }
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
@@ -161,6 +154,27 @@ struct NetworkMapApp: App {
                         }
                     }
 
+                    if !networkScanner.isPrivileged {
+                        HStack(spacing: 4) {
+                            Text("Some devices may be hidden ·")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text("Grant Access")
+                                .font(.caption2)
+                                .foregroundColor(.accentColor)
+                                .onTapGesture {
+                                    Task { await networkScanner.requestPrivilegedAccess() }
+                                }
+                                .onHover { inside in
+                                    if inside {
+                                        NSCursor.pointingHand.push()
+                                    } else {
+                                        NSCursor.pop()
+                                    }
+                                }
+                        }
+                    }
+
                     switch networkScanner.scanState {
                     case .completed(let count):
                         if count == 0 {
@@ -192,12 +206,14 @@ struct NetworkMapApp: App {
 
                 // --- Actions ---
                 VStack(alignment: .leading, spacing: 2) {
-                    MenuItemButton("Refresh", shortcut: "⌘R") {
+                    MenuItemButton("Refresh") {
                         Task {
                             await networkManager.fetchPublicIP()
                             await networkScanner.scan()
                         }
                     }
+                    .disabled(networkScanner.scanState == .scanning)
+                    .opacity(networkScanner.scanState == .scanning ? 0.5 : 1)
                 }
                 .padding(.horizontal, 6)
 
@@ -206,15 +222,25 @@ struct NetworkMapApp: App {
 
                 // --- Settings & Quit ---
                 VStack(alignment: .leading, spacing: 2) {
-                    MenuItemButton("Check for Updates...") {
-                        updaterController.checkForUpdates(nil)
-                    }
-
                     MenuItemButton("Start at Login", isChecked: launchAtLoginEnabled) {
                         toggleLaunchAtLogin()
                     }
 
-                    MenuItemButton("Quit", shortcut: "⌘Q") {
+                    MenuItemButton("Check for Updates...") {
+                        updaterController.checkForUpdates(nil)
+                    }
+
+                    if networkScanner.isPrivileged {
+                        MenuItemButton("Revoke Admin Access") {
+                            Task { await networkScanner.revokePrivilegedAccess() }
+                        }
+                    } else {
+                        MenuItemButton("Grant Admin Access") {
+                            Task { await networkScanner.requestPrivilegedAccess() }
+                        }
+                    }
+
+                    MenuItemButton("Quit") {
                         NSApplication.shared.terminate(nil)
                     }
                 }

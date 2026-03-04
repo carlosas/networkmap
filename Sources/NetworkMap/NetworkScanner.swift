@@ -40,12 +40,16 @@ private enum ScanError: LocalizedError {
 class NetworkScanner: ObservableObject {
     @Published var devices: [NetworkDevice] = []
     @Published var scanState: ScanState = .idle
+    @Published var isPrivileged: Bool = false
+
+    private static let privilegedDir = "/Library/Application Support/NetworkMap"
+    private static let privilegedNmapPath = "/Library/Application Support/NetworkMap/nmap"
 
     private var timerTask: Task<Void, Never>?
 
     init() {
+        checkPrivileged()
         timerTask = Task { [weak self] in
-            await self?.scan()
             try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
             await self?.scan()
             while !Task.isCancelled {
@@ -57,6 +61,55 @@ class NetworkScanner: ObservableObject {
 
     deinit {
         timerTask?.cancel()
+    }
+
+    // MARK: - Privilege management
+
+    func checkPrivileged() {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: Self.privilegedNmapPath) else {
+            isPrivileged = false
+            return
+        }
+        do {
+            let attrs = try fm.attributesOfItem(atPath: Self.privilegedNmapPath)
+            let perms = (attrs[.posixPermissions] as? Int) ?? 0
+            isPrivileged = (perms & 0o4000) != 0
+        } catch {
+            isPrivileged = false
+        }
+    }
+
+    @discardableResult
+    func requestPrivilegedAccess() async -> Bool {
+        guard let bundledDir = Bundle.main.resourceURL?.appendingPathComponent("nmap") else {
+            return false
+        }
+        let dir = Self.privilegedDir
+        let source = """
+            do shell script "mkdir -p '\(dir)' && cp -R '\(bundledDir.path)/' '\(dir)/' && chown -R root:wheel '\(dir)' && chmod 4755 '\(dir)/nmap'" with administrator privileges
+            """
+        var error: NSDictionary?
+        NSAppleScript(source: source)?.executeAndReturnError(&error)
+        guard error == nil else { return false }
+        checkPrivileged()
+        if isPrivileged {
+            await scan()
+        }
+        return isPrivileged
+    }
+
+    @discardableResult
+    func revokePrivilegedAccess() async -> Bool {
+        let dir = Self.privilegedDir
+        let source = """
+            do shell script "rm -rf '\(dir)'" with administrator privileges
+            """
+        var error: NSDictionary?
+        NSAppleScript(source: source)?.executeAndReturnError(&error)
+        guard error == nil else { return false }
+        checkPrivileged()
+        return !isPrivileged
     }
 
     func scan() async {
@@ -134,12 +187,17 @@ class NetworkScanner: ObservableObject {
         } catch {
             scanState = .error(error.localizedDescription)
         }
+        checkPrivileged()
     }
 
     // MARK: - Find nmap binary
 
     private func findNmap() -> String? {
-        // Prefer bundled nmap inside the app bundle
+        // Prefer privileged (setuid) copy if available
+        if isPrivileged, FileManager.default.isExecutableFile(atPath: Self.privilegedNmapPath) {
+            return Self.privilegedNmapPath
+        }
+        // Bundled nmap inside the app bundle
         if let bundledDir = Bundle.main.resourceURL?.appendingPathComponent("nmap") {
             let bundledPath = bundledDir.appendingPathComponent("nmap").path
             if FileManager.default.isExecutableFile(atPath: bundledPath) {
@@ -160,8 +218,11 @@ class NetworkScanner: ObservableObject {
         return nil
     }
 
-    /// Returns the bundled nmap data directory, if it exists.
+    /// Returns the nmap data directory (privileged copy or bundled).
     private func nmapDataDir() -> String? {
+        if isPrivileged, FileManager.default.fileExists(atPath: Self.privilegedDir) {
+            return Self.privilegedDir
+        }
         guard let dir = Bundle.main.resourceURL?.appendingPathComponent("nmap") else { return nil }
         return FileManager.default.fileExists(atPath: dir.path) ? dir.path : nil
     }
@@ -225,7 +286,7 @@ class NetworkScanner: ObservableObject {
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: path)
-            var args = ["-sn", "-oX", "-"]
+            var args = ["-sn", "--system-dns", "-oX", "-"]
             if let dataDir {
                 args += ["--datadir", dataDir]
             }
