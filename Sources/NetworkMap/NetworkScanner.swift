@@ -44,9 +44,12 @@ class NetworkScanner: ObservableObject {
 
     init() {
         timerTask = Task { [weak self] in
+            await self?.scan()
+            try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+            await self?.scan()
             while !Task.isCancelled {
-                await self?.scan()
                 try? await Task.sleep(nanoseconds: 15 * 60 * 1_000_000_000)
+                await self?.scan()
             }
         }
     }
