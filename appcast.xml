@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>NetworkMap</title>
+    <item>
+      <title>Version 0.0.1-alpha22</title>
+      <pubDate>Wed, 04 Mar 2026 22:04:26 +0000</pubDate>
+      <sparkle:version>43</sparkle:version>
+      <sparkle:shortVersionString>0.0.1-alpha22</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/carlosas/networkmap/releases/download/v0.0.1-alpha22/NetworkMap-0.0.1-alpha22.dmg"
+                 sparkle:edSignature="lJCE9caUnwjerVuuw8zqPJ5RtTe89irAlNe9qQIjopBx+TVi05HzVhfnAyoyT8zVoFacm5roFUqt2G+j+ZbzCA==" length="3301172"
+                 type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>
