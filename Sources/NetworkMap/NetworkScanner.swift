@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import Network
 
 struct NetworkDevice: Identifiable, Hashable {
     let id = UUID()
@@ -79,7 +80,24 @@ class NetworkScanner: ObservableObject {
             let macPrefixes = loadMacPrefixes()
             let localIP = localIPAddress(from: subnet)
             let gatewayIP = detectGatewayIP()
-            let enriched = parsed.map { device -> NetworkDevice in
+            let bonjourNames = await BonjourScanner.resolve(timeout: 2.0)
+
+            // Start with nmap-discovered hosts
+            let nmapIPs = Set(parsed.map { $0.ip })
+            var allDevices = parsed
+
+            // Add devices found in ARP table but missed by nmap
+            let subnetPrefix = subnet.components(separatedBy: "/").first ?? ""
+            let prefixParts = subnetPrefix.split(separator: ".").dropLast()
+            let subnetBase = prefixParts.joined(separator: ".") + "."
+            for (ip, mac) in arpTable where !nmapIPs.contains(ip) && ip.hasPrefix(subnetBase) {
+                // Skip network address and broadcast address
+                guard let lastOctet = ip.split(separator: ".").last.flatMap({ Int($0) }),
+                      lastOctet != 0 && lastOctet != 255 else { continue }
+                allDevices.append(NetworkDevice(ip: ip, hostname: nil, macAddress: mac, vendor: nil))
+            }
+
+            let enriched = allDevices.map { device -> NetworkDevice in
                 var hostname = device.hostname
                 var mac = device.macAddress
                 var vendor = device.vendor
@@ -92,6 +110,11 @@ class NetworkScanner: ObservableObject {
                 // OUI vendor lookup from MAC prefix
                 if vendor == nil, let mac {
                     vendor = lookupVendor(mac: mac, prefixes: macPrefixes)
+                }
+
+                // Bonjour name lookup
+                if hostname == nil, let bonjourName = bonjourNames[device.ip] {
+                    hostname = bonjourName
                 }
 
                 // Identify local machine
@@ -419,6 +442,109 @@ private class NmapXMLDelegate: NSObject, XMLParserDelegate {
                 devices.append(NetworkDevice(ip: ip, hostname: currentHostname, macAddress: currentMAC, vendor: currentVendor))
             }
             inHost = false
+        }
+    }
+}
+
+// MARK: - Bonjour Service Discovery
+
+private enum BonjourScanner {
+    /// Service types that commonly reveal device names.
+    private static let serviceTypes = [
+        "_companion-link._tcp",
+        "_airplay._tcp",
+        "_raop._tcp",
+        "_googlecast._tcp",
+        "_hap._tcp",
+        "_smb._tcp",
+        "_rfb._tcp",
+        "_printer._tcp",
+        "_ipp._tcp",
+    ]
+
+    private final class ResultCollector: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storage: [String: String] = [:]
+
+        func set(_ name: String, for ip: String) {
+            lock.lock()
+            if storage[ip] == nil { storage[ip] = name }
+            lock.unlock()
+        }
+
+        var results: [String: String] {
+            lock.lock()
+            defer { lock.unlock() }
+            return storage
+        }
+    }
+
+    /// Browses Bonjour services and returns a mapping of IP → friendly device name.
+    static func resolve(timeout: TimeInterval) async -> [String: String] {
+        await withCheckedContinuation { continuation in
+            let group = DispatchGroup()
+            let queue = DispatchQueue(label: "bonjour", attributes: .concurrent)
+            let collector = ResultCollector()
+            var browsers: [NWBrowser] = []
+
+            for type in serviceTypes {
+                group.enter()
+                let params = NWParameters()
+                params.includePeerToPeer = true
+                let browser = NWBrowser(for: .bonjour(type: type, domain: "local."), using: params)
+                browsers.append(browser)
+
+                browser.browseResultsChangedHandler = { newResults, _ in
+                    for result in newResults {
+                        if case .service(let name, _, _, _) = result.endpoint {
+                            // Resolve the endpoint to get the IP
+                            let connection = NWConnection(to: result.endpoint, using: .tcp)
+                            connection.stateUpdateHandler = { state in
+                                if case .ready = state,
+                                   let path = connection.currentPath,
+                                   let endpoint = path.remoteEndpoint,
+                                   case .hostPort(let host, _) = endpoint {
+                                    let ip: String?
+                                    switch host {
+                                    case .ipv4(let addr):
+                                        ip = "\(addr)"
+                                    case .ipv6(let addr):
+                                        let s = "\(addr)"
+                                        // Extract IPv4-mapped IPv6 (::ffff:a.b.c.d)
+                                        if s.hasPrefix("::ffff:") {
+                                            ip = String(s.dropFirst(7))
+                                        } else {
+                                            ip = nil
+                                        }
+                                    default:
+                                        ip = nil
+                                    }
+                                    if let ip {
+                                        collector.set(name, for: ip)
+                                    }
+                                    connection.cancel()
+                                }
+                                if case .failed = state { connection.cancel() }
+                                if case .cancelled = state { /* done */ }
+                            }
+                            connection.start(queue: queue)
+                        }
+                    }
+                }
+                browser.stateUpdateHandler = { state in
+                    if case .failed = state { group.leave() }
+                }
+                browser.start(queue: queue)
+            }
+
+            // Wait for the timeout, then collect results
+            queue.asyncAfter(deadline: .now() + timeout) {
+                for browser in browsers {
+                    browser.cancel()
+                }
+                for _ in serviceTypes { group.leave() }
+                continuation.resume(returning: collector.results)
+            }
         }
     }
 }

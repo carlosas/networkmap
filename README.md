@@ -94,7 +94,7 @@ open NetworkMap.app
 
 ## 📝 What's coming next
 
-[ ] MAC Vendor Lookup
+[x] MAC Vendor Lookup
    We already capture MAC addresses and bundle nmap-mac-prefixes. Show the vendor name (Apple, TP-Link, etc.) instead of "Unknown" — that's the biggest UX gap right now. A device showing "Apple —  
    192.168.1.43" is 10x more useful than "Unknown".
 
