@@ -41,6 +41,7 @@ struct MenuItemButton: View {
 
 struct DeviceRow: View {
     let device: NetworkDevice
+    let deviceWindowManager: DeviceWindowManager
     @State private var isHovered = false
 
     private var displayName: String {
@@ -80,8 +81,7 @@ struct DeviceRow: View {
         .foregroundColor(isHovered ? .white : .primary)
         .contentShape(Rectangle())
         .onTapGesture {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(device.ip, forType: .string)
+            deviceWindowManager.showDevice(device)
         }
         .onHover { isHovered = $0 }
     }
@@ -104,6 +104,7 @@ struct NetworkMapApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var networkManager = NetworkManager()
     @StateObject private var networkScanner = NetworkScanner()
+    @StateObject private var deviceWindowManager = DeviceWindowManager()
     @State private var launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
     private let updaterController: SPUStandardUpdaterController
     private let menuBarIcon: NSImage
@@ -197,6 +198,7 @@ struct NetworkMapApp: App {
 
                     if !networkScanner.devices.isEmpty {
                         deviceList
+                            .padding(.horizontal, -16)
                     }
                 }
                 .padding()
@@ -256,14 +258,16 @@ struct NetworkMapApp: App {
     
     @ViewBuilder
     private var deviceList: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(networkScanner.devices) { device in
-                    DeviceRow(device: device)
-                }
-            }
+        List(networkScanner.devices) { device in
+            DeviceRow(device: device, deviceWindowManager: deviceWindowManager)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.visible)
+                .listRowSeparatorTint(Color(nsColor: .separatorColor))
         }
-        .frame(maxHeight: 200)
+        .listStyle(.bordered)
+        .scrollContentBackground(.hidden)
+        .frame(maxHeight: 350)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func toggleLaunchAtLogin() {
