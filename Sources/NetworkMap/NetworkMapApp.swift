@@ -50,15 +50,30 @@ struct DeviceRow: View {
     let device: NetworkDevice
     @State private var isHovered = false
 
+    private var displayName: String {
+        device.hostname ?? device.vendor ?? "Unknown"
+    }
+
+    private var subtitle: String? {
+        if device.hostname != nil { return device.vendor }
+        return nil
+    }
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 1) {
-                Text(device.hostname ?? "Unknown")
+                Text(displayName)
                     .font(.caption)
                     .lineLimit(1)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundColor(isHovered ? .white.opacity(0.7) : .secondary)
+                        .lineLimit(1)
+                }
                 Text(device.ip)
                     .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(isHovered ? .white.opacity(0.7) : .secondary)
             }
             Spacer()
         }
@@ -133,28 +148,25 @@ struct NetworkMapApp: App {
 
                 // --- Network Devices ---
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Network Devices")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    switch networkScanner.scanState {
-                    case .idle:
-                        EmptyView()
-                    case .scanning:
-                        HStack(spacing: 6) {
+                    HStack(spacing: 6) {
+                        Text("Network Devices")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        if networkScanner.scanState == .scanning {
                             ProgressView()
-                                .controlSize(.small)
+                                .controlSize(.mini)
                             Text("Scanning...")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
+                    }
+
+                    switch networkScanner.scanState {
                     case .completed(let count):
                         if count == 0 {
                             Text("No devices found")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                        } else {
-                            deviceList
                         }
                     case .nmapNotFound:
                         Text("nmap not available")
@@ -165,6 +177,12 @@ struct NetworkMapApp: App {
                             .font(.caption)
                             .foregroundColor(.red)
                             .lineLimit(2)
+                    default:
+                        EmptyView()
+                    }
+
+                    if !networkScanner.devices.isEmpty {
+                        deviceList
                     }
                 }
                 .padding()
