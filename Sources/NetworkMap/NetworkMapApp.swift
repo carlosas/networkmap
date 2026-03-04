@@ -195,14 +195,8 @@ struct NetworkMapApp: App {
                     MenuItemButton("Refresh", shortcut: "⌘R") {
                         Task {
                             await networkManager.fetchPublicIP()
+                            await networkScanner.scan()
                         }
-                    }
-
-                    MenuItemButton(
-                        networkScanner.scanState == .scanning ? "Scanning..." : "Scan Network",
-                        shortcut: "⌘S"
-                    ) {
-                        Task { await networkScanner.scan() }
                     }
                 }
                 .padding(.horizontal, 6)
