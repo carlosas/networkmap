@@ -11,9 +11,9 @@
 
 [Installation](#-how-to-install) • [Features](#-features) • [Development](#-local-development)
 
-</div>
+  <img src="example.png" width="600" alt="NetworkMap example">
 
----
+</div>
 
 ## ✨ Features
 
