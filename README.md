@@ -26,8 +26,6 @@
 - **Auto-Updates** 🔄<br/>
   Powered by Sparkle, NetworkMap stays up-to-date with new releases.
 
----
-
 ## 🚀 How to Install
 
 ### Homebrew (Recommended ✨)
@@ -50,16 +48,12 @@ That's it! 🎉 Launch the app from your Applications folder.
    ```
 4. Launch the app from your Applications folder.
 
----
-
 ## 🧭 Usage
 
 - **View IP**: Simply click the logo ( <img src="icon.svg" width="14" height="14" style="vertical-align: middle"> ) in your menu bar to instantly view the network information.
-- **Refresh**: Click **Refresh** within the menu (or simply press `⌘ + R`) to manually fetch the network information at any time.
+- **Refresh**: Click **Refresh** within the menu (or simply press `⌘ + R`) to manually fetch the network information.
 - **Check for Updates**: Easily manually check for new versions from the dropdown.
 - **Quit**: Click **Quit** to close the app.
-
----
 
 ## 🛠 Local Development
 
@@ -174,9 +168,7 @@ Quick check to see if DNS queries are leaking outside a VPN tunnel.
 
 Use nettop or NetworkStatistics to show per-interface throughput in the menu bar.
 
----
-
-Technical Debt
+[] Technical Debt
 
 - Retry logic for failed nmap scans (exponential backoff)
 - Concurrent subnet scanning for multi-homed machines
