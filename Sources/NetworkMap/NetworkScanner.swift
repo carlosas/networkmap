@@ -53,7 +53,7 @@ class NetworkScanner: ObservableObject {
             try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
             await self?.scan()
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 15 * 60 * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: 60 * 60 * 1_000_000_000)
                 await self?.scan()
             }
         }
